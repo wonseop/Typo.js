@@ -1,7 +1,7 @@
 function run() {
 	var utilityDict = new Typo();
-	var affData = utilityDict._readFile(chrome.extension.getURL("../typo/dictionaries/en_US/en_US.aff"));
-	var wordData = utilityDict._readFile(chrome.extension.getURL("../typo/dictionaries/en_US/en_US.dic"));
+	var affData = utilityDict._readFile( "dictionaries/en_US/en_US.aff" );
+	var wordData = utilityDict._readFile( "dictionaries/en_US/en_US.dic" );
 	
 	var hashDict = new Typo("en_US", affData, wordData);
 	
