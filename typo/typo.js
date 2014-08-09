@@ -52,14 +52,9 @@
 			this.dictionary = dictionary;
 
 			path = settings.dictionaryPath || '';
+			affData = affData || this._readFile(path + "/" + dictionary + "/" + dictionary + ".aff", settings.charset);
+			wordsData = wordsData || this._readFile(path + "/" + dictionary + "/" + dictionary + ".dic", settings.charset);
 
-			if ( !affData ) {
-				affData = this._readFile(path + "/" + dictionary + "/" + dictionary + ".aff");
-			}
-
-			if ( !wordsData ) {
-				wordsData = this._readFile(path + "/" + dictionary + "/" + dictionary + ".dic");
-			}
 
 			this.rules = this._parseAFF(affData);
 
@@ -140,22 +135,32 @@
 		 * @returns string The file data.
 		 */
 		_readFile: function ( path, charset ) {
-			var xhr;
+			var xhr,
+				result = "",
+				isIE = "ActiveXObject" in window,
+				href = window.location.href;
 
-			if ( !charset ) {
-				charset = "ISO8859-1";
+			path = isIE ? href.substring(0, href.lastIndexOf('/')) + "/" + path : path;
+
+			try {
+				xhr = isIE ? new window.ActiveXObject("MSXML2.XMLHTTP") : new XMLHttpRequest();
+				xhr.open( "POST", path, false );
+
+				if ( xhr.overrideMimeType ) {
+					xhr.overrideMimeType("text/plain; charset=" + ( charset || "ISO8859-1" ) );
+				}
+
+				xhr.send( null );
+
+				result = xhr.responseText;
+			} catch ( e ) {
+				alert("Error: Can't read a file! \n" +
+					"supportActiveX: " + isIE + "\n" +
+					"Path: " + path + "\n" +
+					"Message: " + e.message );
 			}
 
-			xhr = new XMLHttpRequest();
-			xhr.open( "GET", path, false );
-
-			if ( xhr.overrideMimeType ) {
-				xhr.overrideMimeType("text/plain; charset=" + charset);
-			}
-
-			xhr.send(null);
-
-			return xhr.responseText;
+			return result;
 		},
 
 		/**
