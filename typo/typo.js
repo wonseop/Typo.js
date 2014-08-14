@@ -55,7 +55,6 @@
 			affData = affData || this._readFile(path + "/" + dictionary + "/" + dictionary + ".aff", settings.charset);
 			wordsData = wordsData || this._readFile(path + "/" + dictionary + "/" + dictionary + ".dic", settings.charset);
 
-
 			this.rules = this._parseAFF(affData);
 
 			// Save the rule codes that are used in compound rules.
@@ -188,7 +187,7 @@
 
 				ruleType = definitionParts[0];
 
-				if ( ruleType == "PFX" || ruleType == "SFX" ) {
+				if ( ruleType === "PFX" || ruleType === "SFX" ) {
 					ruleCode = definitionParts[1];
 					combineable = definitionParts[2];
 					numEntries = parseInt(definitionParts[3], 10);
@@ -248,6 +247,13 @@
 
 					if (lineParts.length === 3) {
 						this.replacementTable.push([ lineParts[1], lineParts[2] ]);
+					}
+				} else if ( ruleType === "ICONV" || ruleType === "OCONV" ) {
+					if (!this[ruleType]) {
+						this[ruleType] = {};
+					}
+					if (definitionParts[2]) {
+						this[ruleType][definitionParts[1]] = definitionParts[2];
 					}
 				} else {
 					// ONLYINCOMPOUND
@@ -403,7 +409,7 @@
 
 				return flags;
 			} else if ( this.flags.FLAG === "num" ) {
-				return textCode.split( "," );
+				return textCodes.split( "," );
 			}
 		},
 
