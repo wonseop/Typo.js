@@ -52,8 +52,8 @@
 			this.dictionary = dictionary;
 
 			path = settings.dictionaryPath || '';
-			affData = affData || this._readFile(path + "/" + dictionary + "/" + dictionary + ".aff", settings.charset);
-			wordsData = wordsData || this._readFile(path + "/" + dictionary + "/" + dictionary + ".dic", settings.charset);
+			affData = affData || this._readFile( path + "/" + dictionary + "/" + dictionary + ".aff", settings.charset );
+			wordsData = wordsData || this._readFile( path + "/" + dictionary + "/" + dictionary + ".dic", settings.charset );
 
 			this.rules = this._parseAFF(affData);
 
@@ -109,6 +109,53 @@
 
 		return this;
 	};
+
+	function isHangul( charCode ) {
+		return ( charCode >= 0xAC00 ) && ( charCode <= 0xD7AF );
+	}
+
+	function disassembleHangle( string ) {
+		var i, length, temp, cho, jung, jong,
+			rCho = [
+				"ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ",
+				"ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"
+			],
+			rJung = [
+				"ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅘ",
+				"ㅙ", "ㅚ", "ㅛ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ",
+				"ㅣ"
+			],
+			rJong = [
+				"", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ",
+				"ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ",
+				"ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"
+			],
+			morphemes = [];
+
+		length = string.length;
+
+		for ( i = 0; i < length; i++ ) {
+			temp = string.charCodeAt( i );
+
+			if ( !isHangul( temp ) ) {
+				continue;
+			}
+
+			temp -= 0xAC00;
+			jong = temp % 28;								// 종성
+			jung = ( ( temp - jong ) / 28 ) % 21;			// 중성
+			cho = ( ( ( temp - jong ) / 28 ) - jung ) / 21;	// 종성
+
+			morphemes.push( String.fromCharCode( 0x1100 + cho ) );
+			morphemes.push( String.fromCharCode( 0x1161 + jung ) );
+
+			if ( jong ) {
+				morphemes.push( String.fromCharCode( 0x11A7 + jong ) );
+			}
+		}
+
+		return morphemes.join( "" );
+	}
 
 	Typo.prototype = {
 		/**
@@ -255,6 +302,8 @@
 					if (definitionParts[2]) {
 						this[ruleType][definitionParts[1]] = definitionParts[2];
 					}
+				} else if ( ruleType === "TRY" ) {
+					this.alphabet = definitionParts[1];
 				} else {
 					// ONLYINCOMPOUND
 					// COMPOUNDMIN
@@ -470,11 +519,21 @@
 		 * @param {String} aWord The word to check.
 		 * @returns {Boolean}
 		 */
-		check: function ( aWord ) {
-			var trimmedWord, capitalizedWord, lowercaseWord;
+		check: function( aWord ) {
+			var trimmedWord;
 
 			// Remove leading and trailing whitespace
 			trimmedWord = aWord.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+
+			if ( this.dictionary === "ko" ) {
+				trimmedWord = disassembleHangle( trimmedWord );
+			}
+
+			return this._check( trimmedWord );
+		},
+
+		_check: function ( trimmedWord ) {
+			var capitalizedWord, lowercaseWord;
 
 			if (this.checkExact(trimmedWord)) {
 				return true;
@@ -581,7 +640,14 @@
 
 			limit = limit || 5;
 
-			if ( this.check( word ) ) {
+			// Remove leading and trailing whitespace
+			word = word.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+
+			if ( this.dictionary === "ko" ) {
+				word = disassembleHangle( word );
+			}
+
+			if ( this._check( word ) ) {
 				return [];
 			}
 
@@ -592,14 +658,14 @@
 				if ( word.indexOf(replacementEntry[0]) !== -1 ) {
 					correctedWord = word.replace( replacementEntry[0], replacementEntry[1] );
 
-					if ( this.check( correctedWord ) ) {
+					if ( this._check( correctedWord ) ) {
 						return [correctedWord];
 					}
 				}
 			}
 
 			self = this;
-			self.alphabet = "abcdefghijklmnopqrstuvwxyz";
+			//self.alphabet = "abcdefghijklmnopqrstuvwxyz";
 
 			/*
 			if (!self.alphabet) {
@@ -685,7 +751,7 @@
 				var i, _len, rv = [];
 
 				for ( i = 0, _len = words.length; i < _len; i++) {
-					if ( self.check( words[i] ) ) {
+					if ( self._check( words[i] ) ) {
 						rv.push( words[i] );
 					}
 				}
