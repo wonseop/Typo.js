@@ -190,7 +190,7 @@
 
 			try {
 				xhr = isIE ? new window.ActiveXObject("MSXML2.XMLHTTP") : new XMLHttpRequest();
-				xhr.open( "POST", path, false );
+				xhr.open( "GET", path, false );
 
 				if ( xhr.overrideMimeType ) {
 					xhr.overrideMimeType("text/plain; charset=" + ( charset || "ISO8859-1" ) );
